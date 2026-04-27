@@ -11,9 +11,32 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
   <style>
-    body { background: #f5f6fa; }
-    .card { border-radius: 12px; }
+    /* ===================== BASE ===================== */
+    body {
+        background: linear-gradient(135deg, #f5f6fa, #eef2ff);
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: #111827;
+    }
 
+    h3 {
+        font-weight: 700;
+        letter-spacing: -0.5px;
+    }
+
+    /* ===================== CARDS ===================== */
+    .card {
+        border-radius: 16px;
+        border: none;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+        transition: 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    /* ===================== TOAST ===================== */
     #toastContainer {
         position: fixed;
         top: 20px;
@@ -22,13 +45,20 @@
         width: 320px;
     }
 
+    /* ===================== SEMESTERS ===================== */
     .semester-item {
         cursor: pointer;
-        transition: 0.2s;
-        border-radius: 8px !important;
+        transition: all 0.2s ease;
+        border-radius: 10px !important;
+        margin-bottom: 6px;
+        padding: 10px 12px;
+        font-weight: 500;
     }
 
-    .semester-item:hover { background: #eef2ff; }
+    .semester-item:hover {
+        background: #eef2ff;
+        transform: translateX(2px);
+    }
 
     .semester-active {
         background: linear-gradient(135deg, #4f46e5, #6366f1) !important;
@@ -36,26 +66,94 @@
         font-weight: 600;
     }
 
-    /* ===================== HIDE PRINT AREA (UI SAFE) ===================== */
+    /* ===================== TABLE ===================== */
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table th {
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #6b7280;
+    }
+
+    .table td {
+        vertical-align: middle;
+    }
+
+    /* make inputs cleaner */
+    input.form-control,
+    select.form-control {
+        border-radius: 10px;
+        border: 1px solid #e5e7eb;
+        font-size: 14px;
+    }
+
+    input.form-control:focus,
+    select.form-control:focus {
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+
+    /* ===================== BUTTONS ===================== */
+    .btn {
+        border-radius: 10px;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #4f46e5, #6366f1);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        opacity: 0.92;
+    }
+
+    .btn-secondary {
+        background: #111827;
+        border: none;
+    }
+
+    /* action buttons */
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    /* ===================== KPI STYLE ===================== */
+    #gwa, #gpa {
+        font-size: 22px;
+        font-weight: 700;
+        color: #111827;
+    }
+
+    /* status text */
+    #gwaStatus, #gpaStatus {
+        font-weight: 500;
+        color: #6b7280;
+    }
+
+    /* ===================== LAYOUT ===================== */
+    .container {
+        max-width: 1200px;
+    }
+
+    /* ===================== PRINT AREA ===================== */
     #printArea {
         position: fixed;
         left: -10000px;
         top: 0;
         width: 100%;
-        height: auto;
-        opacity: 0;           /* 🔥 prevents visual flash */
-        pointer-events: none; /* 🔥 prevents accidental interaction */
+        opacity: 0;
+        pointer-events: none;
     }
 
-    /* ===================== PRINT MODE ===================== */
     @media print {
+        body * { visibility: hidden; }
 
-        body * {
-            visibility: hidden;
-        }
-
-        #printArea,
-        #printArea * {
+        #printArea, #printArea * {
             visibility: visible;
         }
 
@@ -68,18 +166,15 @@
         }
 
         .page {
-            display: block;
             page-break-after: always;
-            break-after: page;
         }
 
         .semester-block {
             margin-bottom: 12px;
             border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 8px;
+            padding: 12px;
+            border-radius: 10px;
             break-inside: avoid;
-            page-break-inside: avoid;
         }
 
         table {
@@ -90,18 +185,41 @@
 
         th, td {
             border: 1px solid #000;
-            padding: 4px;
+            padding: 5px;
+        }
+    }
+
+    /* ===================== RESPONSIVE (IMPORTANT) ===================== */
+    @media (max-width: 768px) {
+
+        h3 {
+            font-size: 20px;
         }
 
-        #gwaChart {
-            max-height: 350px !important;
+        .row {
+            flex-direction: column;
         }
 
-        .print-chart {
-            width: 100%;
-            max-width: 750px;
-            display: block;
-            margin: auto;
+        #semesterList {
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .card {
+            margin-bottom: 15px;
+        }
+
+        .table-responsive {
+            border-radius: 12px;
+            overflow-x: auto;
+        }
+
+        .semester-item {
+            font-size: 14px;
+        }
+
+        #gwa, #gpa {
+            font-size: 20px;
         }
     }
   </style>
