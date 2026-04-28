@@ -690,7 +690,6 @@
 
             const semesterEntries = Object.entries(semesters);
 
-            // ---------------- HELPERS ----------------
             function getSemesterStatus(gwa){
                 if(gwa <= 2.00) return "PASSED";
                 if(gwa <= 3.00) return "BARELY PASSED";
@@ -704,11 +703,11 @@
             }
 
             let cumulativePoints = 0;
-            let cumulativeUnits = 0;
+            let cumulativeUnits = 0;      // GPA ONLY (excludes 🚫)
+            let cumulativeUnitsAll = 0;   // DISPLAY ONLY (includes 🚫)
 
             let page = null;
 
-            // ---------------- SEMESTER PAGES ----------------
             semesterEntries.forEach(([id, sem], index)=>{
 
                 if(index % 2 === 0){
@@ -736,9 +735,9 @@
 
                 const gwa = gwaUnits ? (totalPoints / gwaUnits) : 0;
 
-                // accumulate for final GPA
                 cumulativeUnits += gwaUnits;
                 cumulativePoints += totalPoints;
+                cumulativeUnitsAll += totalUnits; // ✅ FIXED
 
                 const semesterStatus = getSemesterStatus(gwa);
                 const honor = getHonor(gwa);
@@ -778,7 +777,6 @@
                 page.appendChild(block);
             });
 
-            // ---------------- FINAL PAGE ----------------
             const finalGPA = cumulativeUnits ? (cumulativePoints / cumulativeUnits) : 0;
 
             let finalStatus = "GRADUATE";
@@ -794,6 +792,7 @@
 
             const finalPage = document.createElement("div");
             finalPage.className = "page";
+
             finalPage.innerHTML = `
                 <div style="text-align:center;font-weight:bold;">
                     CUMULATIVE GPA REPORT
@@ -801,14 +800,29 @@
                 <hr>
 
                 <h4>Final Summary</h4>
+                <br>
 
-                <p><strong>Total Units:</strong> ${cumulativeUnits}</p>
-                <p><strong>GPA:</strong> ${finalGPA.toFixed(3)}</p>
-                <p><strong>Status:</strong> ${finalStatus}</p>
-
-                ${latinHonor ? `<p><strong>Latin Honor:</strong> ${latinHonor}</p>` : ""}
+                <table border="1" style="width:50%; border-collapse: collapse; font-size: 14px;">
+                    <tr>
+                        <th>Total Units</th>
+                        <td>${cumulativeUnitsAll}</td>
+                    </tr>
+                    <tr>
+                        <th>Cumulative GPA</th>
+                        <td>${finalGPA.toFixed(3)}</td>
+                    </tr>
+                    <tr>
+                        <th>Status</th>
+                        <td>${finalStatus}</td>
+                    </tr>
+                    <tr>
+                        <th>Latin Honor</th>
+                        <td>${latinHonor || "—"}</td>
+                    </tr>
+                </table>
             `;
 
+            
             printArea.appendChild(finalPage);
 
             setTimeout(()=>window.print(),250);
