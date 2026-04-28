@@ -305,466 +305,514 @@
 
     <script>
 
-    let semesters = JSON.parse(localStorage.getItem('gwa_semesters')) || {};
-    let activeSemester = localStorage.getItem('gwa_active') || null;
-    let chart;
+        let semesters = JSON.parse(localStorage.getItem('gwa_semesters')) || {};
+        let activeSemester = localStorage.getItem('gwa_active') || null;
+        let chart;
 
-    /* ---------------- STATUS ---------------- */
-    function getGwaStatus(gwa){
-    if(gwa <= 1.20) return "President’s Lister 🥇";
-    if(gwa <= 1.50) return "Dean’s Lister 🏅";
-    if(gwa <= 3.00) return "Passed ✔";
-    return "Failed ❌";
-    }
-
-    function getGpaStatus(gpa){
-    if(gpa <= 1.20) return "Summa Cum Laude 🏆";
-    if(gpa <= 1.35) return "Magna Cum Laude 🎓";
-    if(gpa <= 1.50) return "Cum Laude 🎉";
-    if(gpa <= 3.00) return "Passed ✔";
-    return "Failed ❌";
-    }
-
-    /* ---------------- TOAST ---------------- */
-    function showToast(msg,type="info"){
-    const el=document.createElement("div");
-    el.className=`toast align-items-center text-bg-${type} border-0 show mb-2`;
-    el.innerHTML=`
-        <div class="d-flex">
-        <div class="toast-body">${msg}</div>
-        <button class="btn-close btn-close-white me-2 m-auto"
-            onclick="this.parentElement.parentElement.remove()"></button>
-        </div>`;
-    document.getElementById("toastContainer").appendChild(el);
-    setTimeout(()=>el.remove(),3000);
-    }
-
-    /* ---------------- SAVE ---------------- */
-    function persist(){
-    localStorage.setItem('gwa_semesters',JSON.stringify(semesters));
-    localStorage.setItem('gwa_active',activeSemester);
-    }
-
-    /* ---------------- SEMESTERS ---------------- */
-    function addSemester(){
-    const name=document.getElementById("semesterName").value.trim();
-    if(!name){showToast("Semester name required","danger");return;}
-
-    const id=Date.now().toString();
-    semesters[id]={name,rows:[]};
-
-    document.getElementById("semesterName").value="";
-    renderSemesters();
-    selectSemester(id);
-    persist();
-    }
-
-    function renderSemesters(){
-    const list=document.getElementById("semesterList");
-    list.innerHTML="";
-
-    Object.keys(semesters).forEach(id=>{
-        const div=document.createElement("div");
-        div.className="list-group-item semester-item d-flex justify-content-between";
-        if(id===activeSemester) div.classList.add("semester-active");
-
-        const left=document.createElement("div");
-        left.innerText=semesters[id].name;
-        left.onclick=()=>selectSemester(id);
-
-        const actions=document.createElement("div");
-
-        /* ✅ EDIT BUTTON (RESTORED) */
-        const edit=document.createElement("button");
-        edit.className="btn btn-sm btn-outline-primary me-1";
-        edit.innerText="✎";
-        edit.onclick=(e)=>{
-        e.stopPropagation();
-
-        const newName = prompt("Rename semester:", semesters[id].name);
-        if(newName && newName.trim()){
-            semesters[id].name = newName.trim();
-
-            persist();
-            renderSemesters();
-
-            if(activeSemester === id){
-            document.getElementById("activeSemesterTitle").innerText = newName;
-            }
-
-            showToast("Semester renamed","success");
+        /* ---------------- STATUS ---------------- */
+        function getGwaStatus(gwa){
+            if(gwa <= 1.20) return "President’s Lister 🥇";
+            if(gwa <= 1.50) return "Dean’s Lister 🏅";
+            if(gwa <= 3.00) return "Passed ✔";
+            return "Failed ❌";
         }
-        };
 
-        /* DELETE BUTTON */
-        const del=document.createElement("button");
-        del.className="btn btn-sm btn-outline-danger";
-        del.innerText="🗑";
-        del.onclick=(e)=>{
-        e.stopPropagation();
+        function getGpaStatus(gpa){
+            if(gpa <= 1.20) return "Summa Cum Laude 🏆";
+            if(gpa <= 1.35) return "Magna Cum Laude 🎓";
+            if(gpa <= 1.50) return "Cum Laude 🎉";
+            if(gpa <= 3.00) return "Passed ✔";
+            return "Failed ❌";
+        }
 
-        delete semesters[id];
-        if(activeSemester===id) activeSemester=null;
+        /* ---------------- TOAST ---------------- */
+        function showToast(msg,type="info"){
+            const el=document.createElement("div");
+            el.className=`toast align-items-center text-bg-${type} border-0 show mb-2`;
+            el.innerHTML=`
+                <div class="d-flex">
+                <div class="toast-body">${msg}</div>
+                <button class="btn-close btn-close-white me-2 m-auto"
+                    onclick="this.parentElement.parentElement.remove()"></button>
+                </div>`;
+            document.getElementById("toastContainer").appendChild(el);
+            setTimeout(()=>el.remove(),3000);
+        }
 
-        persist();
-        renderSemesters();
-        renderTable();
-        calculateGWA();
-        calculateGPA();
-        updateChart();
+        /* ---------------- SAVE ---------------- */
+        function persist(){
+            localStorage.setItem('gwa_semesters',JSON.stringify(semesters));
+            localStorage.setItem('gwa_active',activeSemester);
+        }
 
-        showToast("Semester deleted","danger");
-        };
+        /* ---------------- SEMESTERS ---------------- */
+        function addSemester(){
+            const name=document.getElementById("semesterName").value.trim();
+            if(!name){showToast("Semester name required","danger");return;}
 
-        actions.appendChild(edit);
-        actions.appendChild(del);
+            const id=Date.now().toString();
+            semesters[id]={name,rows:[]};
 
-        div.appendChild(left);
-        div.appendChild(actions);
-        list.appendChild(div);
-    });
-    }
-
-    function selectSemester(id){
-    activeSemester=id;
-    document.getElementById("activeSemesterTitle").innerText=semesters[id].name;
-
-    renderSemesters();
-    renderTable();
-    calculateGWA();
-    calculateGPA();
-    updateChart();
-    persist();
-    }
-
-    /* ---------------- TABLE ---------------- */
-    function addRow(){
-    if(!activeSemester){
-        showToast("Select a semester first","warning");
-        return;
-    }
-
-    semesters[activeSemester].rows.push({
-        code:"",
-        subject:"",
-        units:"",
-        grade:"1.00",
-        includeGwa:true
-    });
-
-    persist();
-    renderTable();
-    calculateGWA();
-    calculateGPA();
-    updateChart();
-    }
-
-    /* ---------------- SYNC ---------------- */
-    function syncFromTable(){
-    if(!activeSemester) return;
-
-    const rows=document.querySelectorAll("#gradeTable tbody tr");
-
-    semesters[activeSemester].rows = Array.from(rows).map((r,i)=>({
-        code:r.querySelector('.code')?.value||"",
-        subject:r.querySelector('.subject')?.value||"",
-        units:r.querySelector('.units')?.value||"",
-        grade:r.querySelector('.grade')?.value||"1.00",
-        includeGwa: semesters[activeSemester].rows[i]?.includeGwa !== false
-    }));
-    }
-
-    /* ---------------- TABLE RENDER ---------------- */
-    function renderTable(){
-    const tbody=document.querySelector("#gradeTable tbody");
-    tbody.innerHTML="";
-
-    if(!activeSemester) return;
-
-    semesters[activeSemester].rows.forEach((r,i)=>{
-        const tr=document.createElement("tr");
-
-        tr.innerHTML=`
-        <td><input class="form-control code" value="${r.code||""}"></td>
-        <td><input class="form-control subject" value="${r.subject||""}"></td>
-        <td><input class="form-control units" value="${r.units||""}"></td>
-        <td>
-            <select class="form-control grade">
-            ${["1.00","1.25","1.50","1.75","2.00","2.25","2.50","2.75","3.00","5.00"]
-                .map(x=>`<option ${x==r.grade?'selected':''}>${x}</option>`).join("")}
-            </select>
-        </td>
-        <td>
-            <button class="btn btn-danger btn-sm">X</button>
-            <button class="btn btn-sm ${r.includeGwa===false?"btn-danger":"btn-outline-secondary"}">🚫</button>
-        </td>
-        `;
-
-        tr.querySelector(".btn-danger").onclick=()=>{
-        semesters[activeSemester].rows.splice(i,1);
-        persist();
-        renderTable();
-        calculateGWA();
-        calculateGPA();
-        updateChart();
-        };
-
-        tr.querySelectorAll("button")[1].onclick=()=>{
-        semesters[activeSemester].rows[i].includeGwa =
-            !semesters[activeSemester].rows[i].includeGwa;
-
-        persist();
-        renderTable();
-        calculateGWA();
-        calculateGPA();
-        updateChart();
-        };
-
-        tr.querySelectorAll("input,select").forEach(el=>{
-        el.oninput=()=>{
-            syncFromTable();
+            document.getElementById("semesterName").value="";
+            renderSemesters();
+            selectSemester(id);
             persist();
+        }
+
+        function renderSemesters(){
+            const list=document.getElementById("semesterList");
+            list.innerHTML="";
+
+            Object.keys(semesters).forEach(id=>{
+                const div=document.createElement("div");
+                div.className="list-group-item semester-item d-flex justify-content-between";
+                if(id===activeSemester) div.classList.add("semester-active");
+
+                const left=document.createElement("div");
+                left.innerText=semesters[id].name;
+                left.onclick=()=>selectSemester(id);
+
+                const actions=document.createElement("div");
+
+                const edit=document.createElement("button");
+                edit.className="btn btn-sm btn-outline-primary me-1";
+                edit.innerText="✎";
+                edit.onclick=(e)=>{
+                    e.stopPropagation();
+                    const newName = prompt("Rename semester:", semesters[id].name);
+                    if(newName && newName.trim()){
+                        semesters[id].name = newName.trim();
+                        persist();
+                        renderSemesters();
+                        if(activeSemester === id){
+                            document.getElementById("activeSemesterTitle").innerText = newName;
+                        }
+                        showToast("Semester renamed","success");
+                    }
+                };
+
+                const del=document.createElement("button");
+                del.className="btn btn-sm btn-outline-danger";
+                del.innerText="🗑";
+                del.onclick=(e)=>{
+                    e.stopPropagation();
+                    delete semesters[id];
+                    if(activeSemester===id) activeSemester=null;
+                    persist();
+                    renderSemesters();
+                    renderTable();
+                    calculateGWA();
+                    calculateGPA();
+                    updateChart();
+                    showToast("Semester deleted","danger");
+                };
+
+                actions.appendChild(edit);
+                actions.appendChild(del);
+                div.appendChild(left);
+                div.appendChild(actions);
+                list.appendChild(div);
+            });
+        }
+
+        function selectSemester(id){
+            activeSemester=id;
+            document.getElementById("activeSemesterTitle").innerText=semesters[id].name;
+            renderSemesters();
+            renderTable();
             calculateGWA();
             calculateGPA();
             updateChart();
-        };
-        });
-
-        tbody.appendChild(tr);
-    });
-    }
-
-    /* ---------------- COMPUTE ---------------- */
-    function calculateGWA(){
-    if(!activeSemester) return;
-
-    let t=0,u=0;
-
-    semesters[activeSemester].rows.forEach(r=>{
-        if(r.includeGwa===false) return;
-
-        const g=parseFloat(r.grade);
-        const uu=parseFloat(r.units);
-
-        if(!isNaN(g)&&!isNaN(uu)){
-        t+=g*uu;
-        u+=uu;
+            persist();
         }
-    });
 
-    const gwa = u ? t/u : 0;
-
-    document.getElementById("gwa").innerText=gwa.toFixed(3);
-    document.getElementById("semUnits").innerText=u;
-    document.getElementById("gwaStatus").innerText=getGwaStatus(gwa);
-    }
-
-    function calculateGPA(){
-    let t=0,u=0;
-
-    Object.values(semesters).forEach(s=>{
-        s.rows.forEach(r=>{
-        const g=parseFloat(r.grade);
-        const uu=parseFloat(r.units);
-
-        if(!isNaN(g)&&!isNaN(uu)){
-            t+=g*uu;
-            u+=uu;
-        }
-        });
-    });
-
-    const gpa = u ? t/u : 0;
-
-    document.getElementById("gpa").innerText=gpa.toFixed(3);
-    document.getElementById("totalUnits").innerText=u;
-    document.getElementById("gpaStatus").innerText=getGpaStatus(gpa);
-    }
-
-    /* ---------------- CHART ---------------- */
-    function updateChart(){
-    const labels=[],data=[];
-
-    Object.values(semesters).forEach(s=>{
-        let t=0,u=0;
-
-        s.rows.forEach(r=>{
-        const g=parseFloat(r.grade);
-        const uu=parseFloat(r.units);
-
-        if(!isNaN(g)&&!isNaN(uu)){
-            t+=g*uu;
-            u+=uu;
-        }
-        });
-
-        if(u>0){
-        labels.push(s.name);
-        data.push((t/u).toFixed(3));
-        }
-    });
-
-    if(chart) chart.destroy();
-
-    chart=new Chart(document.getElementById("gwaChart"),{
-        type:"line",
-        data:{labels,datasets:[{label:"GWA",data}]},
-        options:{
-        scales:{
-            y:{
-            reverse:true,
-            min:1.0,
-            max:5.0
+        /* ---------------- TABLE ---------------- */
+        function addRow(){
+            if(!activeSemester){
+                showToast("Select a semester first","warning");
+                return;
             }
+
+            semesters[activeSemester].rows.push({
+                code:"",
+                subject:"",
+                units:"",
+                grade:"1.00",
+                includeGwa:true
+            });
+
+            persist();
+            renderTable();
+            calculateGWA();
+            calculateGPA();
+            updateChart();
         }
+
+        function syncFromTable(){
+            if(!activeSemester) return;
+
+            const rows=document.querySelectorAll("#gradeTable tbody tr");
+
+            semesters[activeSemester].rows = Array.from(rows).map((r,i)=>({
+                code:r.querySelector('.code')?.value||"",
+                subject:r.querySelector('.subject')?.value||"",
+                units:r.querySelector('.units')?.value||"",
+                grade:r.querySelector('.grade')?.value||"1.00",
+                includeGwa: semesters[activeSemester].rows[i]?.includeGwa !== false
+            }));
         }
-    });
-    }
 
-    /* ---------------- INIT ---------------- */
-    window.onload=()=>{
-    renderSemesters();
-    if(activeSemester&&semesters[activeSemester]) selectSemester(activeSemester);
-    updateChart();
-    };
+        /* ---------------- TABLE RENDER ---------------- */
+        function renderTable(){
+            const tbody=document.querySelector("#gradeTable tbody");
+            tbody.innerHTML="";
+            if(!activeSemester) return;
 
-    function getSemesterStatus(gwa){
-    if(gwa <= 1.75) return "PASSED";
-    if(gwa <= 3.00) return "BARELY PASSED";
-    return "FAILED";
-    }
+            semesters[activeSemester].rows.forEach((r,i)=>{
+                const tr=document.createElement("tr");
 
-    function getSemesterHonor(gwa){
-        if(gwa <= 1.20) return "President’s Lister 🥇";
-        if(gwa <= 1.50) return "Dean’s Lister 🏅";
-        return "";
-    }
-
-    function getCumLaude(gpa){
-        if(gpa <= 1.20) return "Summa Cum Laude 🏆";
-        if(gpa <= 1.35) return "Magna Cum Laude 🎓";
-        if(gpa <= 1.50) return "Cum Laude 🎉";
-        return "";
-    }
-
-    function printReport(){
-        const printArea = document.getElementById("printArea");
-        printArea.innerHTML = "";
-
-        const semesterEntries = Object.entries(semesters);
-        const perPage = 2;
-
-        let page = null;
-
-        // ================= SEMESTER PAGES =================
-        semesterEntries.forEach(([id, sem], index) => {
-
-            if (index % perPage === 0) {
-                page = document.createElement("div");
-                page.className = "page";
-
-                page.innerHTML = `
-                    <div style="text-align:center; font-weight:bold; margin-bottom:10px;">
-                        GPA REPORT - SEMESTER RECORDS
-                    </div>
-                    <hr>
+                tr.innerHTML=`
+                <td><input class="form-control code" value="${r.code||""}"></td>
+                <td><input class="form-control subject" value="${r.subject||""}"></td>
+                <td><input class="form-control units" value="${r.units||""}"></td>
+                <td>
+                    <select class="form-control grade">
+                    ${["1.00","1.25","1.50","1.75","2.00","2.25","2.50","2.75","3.00","5.00"]
+                        .map(x=>`<option ${x==r.grade?'selected':''}>${x}</option>`).join("")}
+                    </select>
+                </td>
+                <td>
+                    <button class="btn btn-danger btn-sm">X</button>
+                    <button class="btn btn-sm ${r.includeGwa===false?"btn-danger":"btn-outline-secondary"}">🚫</button>
+                </td>
                 `;
 
-                printArea.appendChild(page);
+                tr.querySelector(".btn-danger").onclick=()=>{
+                    semesters[activeSemester].rows.splice(i,1);
+                    persist();
+                    renderTable();
+                    calculateGWA();
+                    calculateGPA();
+                    updateChart();
+                };
+
+                tr.querySelectorAll("button")[1].onclick=()=>{
+                    semesters[activeSemester].rows[i].includeGwa =
+                        !semesters[activeSemester].rows[i].includeGwa;
+
+                    persist();
+                    renderTable();
+                    calculateGWA();
+                    calculateGPA();
+                    updateChart();
+                };
+
+                tr.querySelectorAll("input,select").forEach(el=>{
+                    el.oninput=()=>{
+                        syncFromTable();
+                        persist();
+                        calculateGWA();
+                        calculateGPA();
+                        updateChart();
+                    };
+                });
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        /* ---------------- COMPUTE ---------------- */
+        function calculateGWA(){
+            if(!activeSemester) return;
+
+            let totalPoints = 0;
+            let gwaUnits = 0;
+            let totalUnitsAll = 0;
+
+            semesters[activeSemester].rows.forEach(r=>{
+                const g = parseFloat(r.grade);
+                const uu = parseFloat(r.units);
+
+                // ✅ ALWAYS count units (even if excluded)
+                if(!isNaN(uu)){
+                    totalUnitsAll += uu;
+                }
+
+                // ✅ ONLY include in GWA if not marked
+                if(r.includeGwa !== false && !isNaN(g) && !isNaN(uu)){
+                    totalPoints += g * uu;
+                    gwaUnits += uu;
+                }
+            });
+
+            const gwa = gwaUnits ? totalPoints / gwaUnits : 0;
+
+            document.getElementById("gwa").innerText = gwa.toFixed(3);
+
+            // ✅ FIX: display ALL units (including marked 🚫)
+            document.getElementById("semUnits").innerText = totalUnitsAll;
+
+            document.getElementById("gwaStatus").innerText = getGwaStatus(gwa);
+        }
+
+        function calculateGPA(){
+            let totalPoints = 0;
+            let totalUnitsGwa = 0;
+            let totalUnitsAll = 0;
+
+            Object.values(semesters).forEach(s=>{
+                s.rows.forEach(r=>{
+                    const g=parseFloat(r.grade);
+                    const uu=parseFloat(r.units);
+
+                    if(!isNaN(uu)){
+                        totalUnitsAll += uu;
+                    }
+
+                    if(r.includeGwa !== false && !isNaN(g)&&!isNaN(uu)){
+                        totalPoints += g*uu;
+                        totalUnitsGwa += uu;
+                    }
+                });
+            });
+
+            const gpa = totalUnitsGwa ? totalPoints/totalUnitsGwa : 0;
+
+            document.getElementById("gpa").innerText=gpa.toFixed(3);
+            document.getElementById("totalUnits").innerText=totalUnitsAll;
+            document.getElementById("gpaStatus").innerText=getGpaStatus(gpa);
+        }
+
+        /* ---------------- CHART ---------------- */
+        function updateChart(){
+            const labels = [], data = [];
+
+            Object.values(semesters).forEach(s=>{
+                let t = 0, u = 0;
+
+                s.rows.forEach(r=>{
+                    if(r.includeGwa === false) return;
+
+                    const g = parseFloat(r.grade);
+                    const uu = parseFloat(r.units);
+
+                    if(!isNaN(g) && !isNaN(uu)){
+                        t += g * uu;
+                        u += uu;
+                    }
+                });
+
+                if(u > 0){
+                    let gwaVal = t / u;
+
+                    // clamp failed values
+                    if(gwaVal > 3.0) gwaVal = 3.0;
+
+                    labels.push(s.name);
+                    data.push(parseFloat(gwaVal.toFixed(3)));
+                }
+            });
+
+            if(chart) chart.destroy();
+
+            chart = new Chart(document.getElementById("gwaChart"), {
+                type: "line",
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "GWA",
+                        data,
+                        tension: 0.3,
+                        pointRadius: 4,
+
+                        segment: {
+                            borderColor: ctx => {
+                                const val = ctx.p1.parsed.y;
+                                return val >= 3.0 ? "red" : "#4f46e5";
+                            }
+                        },
+                        pointBackgroundColor: data.map(v => v >= 3.0 ? "red" : "#4f46e5")
+                    }]
+                },
+                options:{
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context){
+                                    const val = context.parsed.y;
+
+                                    let status = "";
+
+                                    if(val <= 1.20) status = "President’s Lister 🥇";
+                                    else if(val <= 1.50) status = "Dean’s Lister 🏅";
+                                    else if(val <= 3.00) status = "Passed ✔";
+                                    else status = "Failed ❌";
+
+                                    // if clamped at 3.00 but actually failed
+                                    if(val === 3.0){
+                                        status = "Failed ❌";
+                                    }
+
+                                    return `GWA: ${val.toFixed(3)} — ${status}`;
+                                }
+                            }
+                        }
+                    },
+
+                    scales:{
+                        y:{
+                            reverse: true,
+                            min: 1.0,
+                            max: 3.0,
+                            ticks: {
+                                stepSize: 0.25,
+                                callback: function(value){
+                                    return value.toFixed(2);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        /* ---------------- INIT ---------------- */
+        window.onload=()=>{
+            renderSemesters();
+            if(activeSemester&&semesters[activeSemester]) selectSemester(activeSemester);
+            updateChart();
+        };
+
+        /* ---------------- PRINT REPORT ---------------- */
+        function printReport(){
+            const printArea = document.getElementById("printArea");
+            printArea.innerHTML = "";
+
+            const semesterEntries = Object.entries(semesters);
+
+            // ---------------- HELPERS ----------------
+            function getSemesterStatus(gwa){
+                if(gwa <= 2.00) return "PASSED";
+                if(gwa <= 3.00) return "BARELY PASSED";
+                return "FAILED";
             }
 
-            const rowsHtml = sem.rows.map(r => `
-                <tr>
-                    <td>${r.code || ""}</td>
-                    <td>${r.subject || ""}</td>
-                    <td>${r.units || ""}</td>
-                    <td>${r.grade || ""}</td>
-                </tr>
-            `).join("");
+            function getHonor(gwa){
+                if(gwa <= 1.20) return "President’s Lister 🥇";
+                if(gwa <= 1.50) return "Dean’s Lister 🏅";
+                return "";
+            }
 
-            let totalUnits = 0;
-            let totalPoints = 0;
+            let cumulativePoints = 0;
+            let cumulativeUnits = 0;
 
-            sem.rows.forEach(r=>{
-                const u = parseFloat(r.units);
-                const g = parseFloat(r.grade);
-                if(!isNaN(u) && !isNaN(g)){
-                    totalUnits += u;
-                    totalPoints += u * g;
+            let page = null;
+
+            // ---------------- SEMESTER PAGES ----------------
+            semesterEntries.forEach(([id, sem], index)=>{
+
+                if(index % 2 === 0){
+                    page = document.createElement("div");
+                    page.className = "page";
+                    page.innerHTML = `<div style="text-align:center;font-weight:bold;">GWA / GPA REPORT</div><hr>`;
+                    printArea.appendChild(page);
                 }
+
+                let totalUnits = 0;
+                let gwaUnits = 0;
+                let totalPoints = 0;
+
+                sem.rows.forEach(r=>{
+                    const u = parseFloat(r.units);
+                    const g = parseFloat(r.grade);
+
+                    if(!isNaN(u)) totalUnits += u;
+
+                    if(r.includeGwa !== false && !isNaN(u) && !isNaN(g)){
+                        gwaUnits += u;
+                        totalPoints += u * g;
+                    }
+                });
+
+                const gwa = gwaUnits ? (totalPoints / gwaUnits) : 0;
+
+                // accumulate for final GPA
+                cumulativeUnits += gwaUnits;
+                cumulativePoints += totalPoints;
+
+                const semesterStatus = getSemesterStatus(gwa);
+                const honor = getHonor(gwa);
+
+                const rowsHtml = sem.rows.map(r=>`
+                    <tr>
+                        <td>${r.code||""}</td>
+                        <td>${r.subject||""}</td>
+                        <td>${r.units||""}</td>
+                        <td>${r.grade||""}</td>
+                    </tr>
+                `).join("");
+
+                const block = document.createElement("div");
+                block.className = "semester-block";
+                block.innerHTML = `
+                    <h5>${sem.name}</h5>
+
+                    <table border="1">
+                        <thead>
+                            <tr>
+                                <th>Code</th>
+                                <th>Subject</th>
+                                <th>Units</th>
+                                <th>Grade</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+
+                    <p><strong>Total Units:</strong> ${totalUnits}</p>
+                    <p><strong>GWA:</strong> ${gwa.toFixed(3)}</p>
+                    <p><strong>Status:</strong> ${semesterStatus}</p>
+                    ${honor ? `<p><strong>Award:</strong> ${honor}</p>` : ""}
+                `;
+
+                page.appendChild(block);
             });
 
-            const gwa = totalUnits ? (totalPoints / totalUnits).toFixed(3) : "0.000";
-            const status = getSemesterStatus(gwa);
-            const honor = getSemesterHonor(gwa);
+            // ---------------- FINAL PAGE ----------------
+            const finalGPA = cumulativeUnits ? (cumulativePoints / cumulativeUnits) : 0;
 
-            const block = document.createElement("div");
-            block.className = "semester-block";
+            let finalStatus = "GRADUATE";
+            let latinHonor = "";
 
-            block.innerHTML = `
-                <h5>${sem.name}</h5>
+            if(finalGPA > 3.00){
+                finalStatus = "NOT GRADUATE";
+            }
 
-                <table border="1" cellpadding="5" cellspacing="0">
-                    <thead>
-                        <tr>
-                            <th>Code</th>
-                            <th>Subject</th>
-                            <th>Units</th>
-                            <th>Grade</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${rowsHtml}
-                    </tbody>
-                </table>
+            if(finalGPA <= 1.20) latinHonor = "Summa Cum Laude 🏆";
+            else if(finalGPA <= 1.35) latinHonor = "Magna Cum Laude 🎓";
+            else if(finalGPA <= 1.50) latinHonor = "Cum Laude 🎉";
 
-                <p><strong>Total Units:</strong> ${totalUnits}</p>
-                <p><strong>GWA:</strong> ${gwa}</p>
-                <p><strong>Status:</strong> ${status} ${honor ? " | " + honor : ""}</p>
+            const finalPage = document.createElement("div");
+            finalPage.className = "page";
+            finalPage.innerHTML = `
+                <div style="text-align:center;font-weight:bold;">
+                    CUMULATIVE GPA REPORT
+                </div>
+                <hr>
+
+                <h4>Final Summary</h4>
+
+                <p><strong>Total Units:</strong> ${cumulativeUnits}</p>
+                <p><strong>GPA:</strong> ${finalGPA.toFixed(3)}</p>
+                <p><strong>Status:</strong> ${finalStatus}</p>
+
+                ${latinHonor ? `<p><strong>Latin Honor:</strong> ${latinHonor}</p>` : ""}
             `;
 
-            page.appendChild(block);
-        });
+            printArea.appendChild(finalPage);
 
-        // ================= FINAL PAGE (NO CHART ANYMORE) =================
-        let t = 0, u = 0;
-
-        Object.values(semesters).forEach(s=>{
-            s.rows.forEach(r=>{
-                const uu = parseFloat(r.units);
-                const g = parseFloat(r.grade);
-                if(!isNaN(uu) && !isNaN(g)){
-                    u += uu;
-                    t += uu * g;
-                }
-            });
-        });
-
-        const gpa = u ? (t/u).toFixed(3) : "0.000";
-        const cumStatus = "GRADUATE";
-        const cumHonor = getCumLaude(gpa);
-
-        const finalPage = document.createElement("div");
-        finalPage.className = "page semester-block";
-
-        finalPage.innerHTML = `
-            <div style="text-align:center; font-weight:bold; margin-bottom:10px;">
-                GWA REPORT - FINAL SUMMARY
-            </div>
-            <hr>
-
-            <h4>CUMULATIVE SUMMARY</h4>
-            <p><strong>Total Units:</strong> ${u}</p>
-            <p><strong>GPA:</strong> ${gpa}</p>
-            <p><strong>Status:</strong> ${cumStatus} ${cumHonor ? " | " + cumHonor : ""}</p>
-        `;
-
-        printArea.appendChild(finalPage);
-
-        setTimeout(() => {
-            window.print();
-        }, 250);
-    }
+            setTimeout(()=>window.print(),250);
+        }
 
     </script>
 
